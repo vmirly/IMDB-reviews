@@ -2,6 +2,7 @@ data/labeledTrainData.tsv
 data/labeledTrainData.tsv.zip
 data/testData.tsv
 data/testData.tsv.zip
+data/stopwords.txt
 
 
 # Byte-compiled / optimized / DLL files
