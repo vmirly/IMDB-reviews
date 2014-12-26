@@ -6,15 +6,16 @@ Sentiment analysis on IMDB movie reviews
 
 ## Outline
 
-### Feature Extraction:
+### Feature Extraction
 
   * Count Vectorizer
   * TF-IDF
 
 ### Classification Models
 
-  * Multivariate naive Bayes 
-  * Multonmoal naive Bayes
+  * naive Bayes 
+	* Multivariate Bernoullii Distribution
+	* Multonmoal Distribution
   * Random Forest
   * Deep Learning
 
