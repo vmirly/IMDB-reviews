@@ -1,0 +1,285 @@
+
+# coding: utf-8
+
+# In[1]:
+
+#get_ipython().magic(u'load_ext watermark')
+
+#get_ipython().magic(u"watermark -a 'Vahid Mirjalili' -d -p scikit-learn,numpy,numexpr,pandas,matplotlib,plotly -v")
+
+
+# In[2]:
+
+from matplotlib import pyplot as plt
+
+import pandas as pd
+import numpy as np
+import scipy
+import sklearn
+
+#get_ipython().magic(u'matplotlib inline')
+
+
+# ## 1. Read the training and test dataset
+
+# In[3]:
+
+df = pd.read_table('data/labeledTrainData.tsv')
+
+df.head()
+
+
+# In[4]:
+
+df_test = pd.read_table('data/testData.tsv')
+
+df_test.head()
+
+
+# ### 1.1 Extracting X & y data columns
+
+# In[5]:
+
+data_train = df.loc[:, 'review']
+
+y_train = df.loc[:, 'sentiment']
+
+data_train.head()
+
+
+# In[6]:
+
+data_test = df_test.loc[:, 'review']
+
+data_test.tail()
+
+exit
+# ## 2. Text Feature Extraction
+
+# In[7]:
+
+import nltk
+import string
+import re
+from collections import Counter
+
+from nltk.corpus import stopwords
+
+
+# ### 2.1 Tokenizer Function
+
+#  **Transform to lower-case**  
+#  **Remove the punctuations**  
+#  **Remove the stopwrods**  
+#  **Tokenize the remaining string**  
+
+# In[8]:
+
+## For more info, see http://www.cs.duke.edu/courses/spring14/compsci290/assignments/lab02.html
+
+
+
+stemmer = nltk.stem.porter.PorterStemmer()
+
+def get_tokens(inp_txt):
+    
+    ## Lower case: ABC -> abc
+    txt_lower = inp_txt.lower()
+  
+    ## Remove punctuations (!, ', ", ., :, ;, )
+    #txt_lower_nopunct = txt_lower.translate(string.maketrans("",""), string.punctuation)
+    #print(txt_lower_nopunct)
+    
+    
+    ## Tokenize:
+    tokens = nltk.word_tokenize(txt_lower) #_nopunct)
+    #tokens = nltk.wordpunct_tokenize(txt_lower)
+    
+    ## remove stop-words:
+    tokens_filtered = [w for w in tokens if not w in stopwords.words('english')]
+    
+    ## stemming:
+    stems = [stemmer.stem(t) for t in tokens_filtered]
+    stems_nopunct = [s for s in stems if re.match('^[a-zA-Z]+$', s) is not None]
+    return (stems_nopunct)
+
+
+# #### Unit test for tokenizer:
+
+# In[9]:
+
+get_tokens("What's in a name? That which we call a rose by any other name would smell as sweet.")
+
+## Note: you need to download punkt package in nltk:
+# import nltk
+# nltk.download(punkt)
+
+
+# ### 2.2 TF-IDF Feature Extraction
+
+# In[10]:
+
+tfidf = sklearn.feature_extraction.text.TfidfVectorizer(
+    encoding = 'utf-8',
+    decode_error = 'replace',
+    strip_accents = 'ascii',
+    analyzer = 'word',
+    smooth_idf = True,
+    tokenizer = get_tokens
+)
+
+tfidf
+
+
+# #### Unit test for TF-IDF:
+
+# In[11]:
+
+## Shakespear quote
+example_txt_1 = "What's in a name? That which we call a rose by any other name would smell as sweet."
+example_txt_2 = "To be, or not to be: that is the question."
+
+tfidf = tfidf.fit([example_txt_1 + example_txt_2])
+
+example1 = tfidf.transform([example_txt_1])
+example2 = tfidf.transform([example_txt_2])
+
+print('Features: %s' %tfidf.get_feature_names())
+print('Example1: %s' %example1.toarray())
+print('Example2: %s' %example2.toarray())
+
+
+# ### 2.3 Evaluate TF-IDF on the reviews
+
+# 
+
+# In[13]:
+
+### Vectorizing the training set:
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5,
+                             stop_words='english')
+X_train = vectorizer.fit_transform(data_train)
+
+print("Number of samples N= %d,  Number of features d= %d" % X_train.shape)
+
+
+### Transforming the test dataset:
+X_test = vectorizer.transform(data_test)
+
+print("Number of Test Documents: %d,  Number of features: %d" %X_test.shape)
+
+
+# ## 3. Hyper-parameter Optimization using KFold Cross Validation
+
+# In[57]:
+
+from sklearn import pipeline
+from sklearn import metrics
+from sklearn import grid_search
+from sklearn import cross_validation
+from sklearn.naive_bayes import MultinomialNB
+
+import datetime
+import gc # python's garbage collector
+
+
+# ### Optimizaing the Additive Smoothing Paramater $\alpha$
+# 
+# 
+# The class conditional probability is given by
+# 
+# $$P(x_i | C) = \frac{count(x_i, C) + \alpha}{count(x_i) + \alpha |V|}$$
+# 
+# where  
+#   * $count(x_i, C)$: count of observing words $x_i$ in class $C$
+#   * $count(x_i)$ : count of words $x_i$ in all classes
+#   * $\alpha$: smoothing parameter
+#   * $|V|$: the size of distinct words set
+
+# In[44]:
+
+alpha_params = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
+#alpha_params = [0.01, 0.02]
+colors = ["red", "green", "blue", "gray", "#656522", "#12FF14", "#B0B0B0", "#AA0505", "#0145FF", "#670566"]
+#pointtypes = ['o', '^']
+linestyles = ['-', '--', '-.', ':', '-', '--', '-.', ':', '--', '-.']
+
+fig_roc = plt.figure(1, figsize=(10, 8))
+ax_roc = fig_roc.add_subplot(1, 1, 1)
+
+for param,col,ls in zip(alpha_params, colors, linestyles):
+    
+    clf_pipe = pipeline.Pipeline([
+        ('vect', tfidf),
+        ('clf', MultinomialNB(alpha=param))
+    ])
+
+    cv = cross_validation.StratifiedKFold(y_train, n_folds=5)
+    
+    auc_res = 0
+    xr = np.linspace(0, 1, 100)
+    tpr_interp = np.zeros(shape=xr.shape, dtype=float)
+    
+    for i, (train_inx, test_inx) in enumerate(cv):
+        model = clf_pipe.fit(data_train[train_inx], y_train[train_inx])
+        pred = model.predict_proba(data_train[test_inx])
+        
+        fpr, tpr, thresh = metrics.roc_curve(y_train[test_inx], pred[:, 1])
+        auc_res += metrics.auc(fpr, tpr)
+        
+        tpr_interp += scipy.interp(xr, fpr, tpr)
+
+    current_time = datetime.datetime.now().time().isoformat()
+    print("Alpha = %.2f   ---->   AUC = %.4f     (%s)" %(param, auc_res/len(cv), current_time))
+    
+    tpr_interp /= len(cv)
+    line_new = plt.plot(xr, tpr_interp)
+    plt.setp(line_new, color=col, linewidth=3, linestyle=ls)
+    
+
+plt.plot([0, 1], [0, 1], '--', lw=4, color='gray')
+
+plt.setp(ax_roc.get_xticklabels(), rotation='horizontal', fontsize=16)
+plt.setp(ax_roc.get_yticklabels(), rotation='vertical', fontsize=16)
+plt.axis([-0.05, 1.05, -0.05, 1.05])
+plt.xlabel('False Positive Rate', size=20)
+plt.ylabel('True Positive Rate', size=20)
+plt.title('Multinomial NB Classification using TF-IDF Features', size=20)
+plt.legend(alpha_params, loc='lower right', fontsize=20)
+plt.show()
+
+
+# ## Apply Final Classification Model to Predict Classes in Test Set
+# 
+# 
+# 
+# Based on our hyper parameter optimization, we realize that using $\alpha = 2.0$ gives the optimal AUC (area under the curve of receiver operating characteristic). So, in our final classification model we use the following:
+# 
+#   * TF-IDF features
+#   * Multinomal naive Bayes with smoothing paramater $\alpha = 2.0$
+
+# In[56]:
+
+clf_pipe = pipeline.Pipeline([
+    ('vect', tfidf),
+    ('clf', MultinomialNB(alpha=2.0))
+])
+
+final_model = clf_pipe.fit(data_train, y_train)
+#pred_multNB = final_model.predict_proba(data_test)
+
+pred_multNB = final_model.predict(data_test)
+
+pred_multNB = np.vstack((df_test.loc[:, 'id'], pred_multNB)).T
+
+print(pred_multNB.shape)
+
+np.savetxt('../results/pred.multinomialNB.alpha_optimized.csv', pred_multNB, fmt='%s,%1d', delimiter=',', header='id,sentiment')
+
+
+# In[ ]:
+
+
+
