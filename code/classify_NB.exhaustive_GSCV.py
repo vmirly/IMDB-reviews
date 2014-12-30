@@ -24,14 +24,14 @@ import sklearn
 
 # In[3]:
 
-df = pd.read_table('../data/labeledTrainData.tsv')
+df = pd.read_table('data/labeledTrainData.tsv')
 
 print(df.head())
 
 
 # In[4]:
 
-df_test = pd.read_table('../data/testData.tsv')
+df_test = pd.read_table('data/testData.tsv')
 
 print(df_test.head())
 
@@ -141,10 +141,6 @@ import gc # python's garbage collector
 # ## 4. Extensive Grid Search
 
 
-print(clf_pipe.get_params())
-
-
-# In[30]:
 
 tfidf = sklearn.feature_extraction.text.TfidfVectorizer(
     encoding = 'utf-8',
@@ -158,21 +154,24 @@ tfidf = sklearn.feature_extraction.text.TfidfVectorizer(
 param_grid = {
     'vect__max_df':[0.2, 0.4, 0.5, 0.6, 0.8],
     'vect__sublinear_tf':[True, False],
-    'vect__max_features':[5, 10, 20, 40],
+    'vect__max_features':[5000, 10000, 20000, 40000, None],
     'vect__ngram_range':[(1,1), (1,2)],
     'clf__alpha':[0.1, 0.2, 0.5, 1.0, 2.0, 10.0]
 }
+
 
 clf_pipe = pipeline.Pipeline([
         ('vect', tfidf),
         ('clf', MultinomialNB())
 ])
 
+print(clf_pipe.get_params())
+
 auc_scorer = metrics.make_scorer(metrics.roc_auc_score, greater_is_better=True)
 
 grs = grid_search.GridSearchCV(clf_pipe, 
                   param_grid, 
-                  n_jobs=1, 
+                  n_jobs=-1, 
                   verbose=1,
                   scoring=auc_scorer,
                   cv=5
