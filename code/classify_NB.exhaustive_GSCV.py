@@ -6,7 +6,23 @@ import pandas as pd
 import numpy as np
 import scipy
 import sklearn
+import sys
 
+
+### Get the parameters from the command-line arguments
+assert(len(sys.argv)==7)
+
+
+param_dict = {
+    'max_df': float(sys.argv[1]),
+    'sublinear_tf': bool(sys.argv[2]),
+    'max_features': int(sys.argv[3]),
+    'ngram_range': (int(sys.argv[4]), int(sys.argv[5])),
+    'alpha': float(sys.argv[6])
+}
+
+for k,v in param_dict.items():
+    print("Param %-16s: %s"%(k, v))
 
 
 # ## 1. Read the training and test dataset
@@ -91,15 +107,6 @@ import gc # python's garbage collector
 
 # ## 4. Extensive Grid Search
 
-param_dict = {
-    'max_df':
-    'sublinear_tf'
-    'max_features':
-    'ngram_range':
-    'alpha':
-}
-
-
 
 tfidf = sklearn.feature_extraction.text.TfidfVectorizer(
     encoding = 'utf-8',
@@ -109,7 +116,7 @@ tfidf = sklearn.feature_extraction.text.TfidfVectorizer(
     smooth_idf = True,
     max_df = param_dict['maxdf'],
     sublinear_tf = param_dict['sublinear_tf'],
-    max_features = param_dict['max_features',
+    max_features = param_dict['max_features'],
     ngram_range =  param_dict['ngram_range'],
     tokenizer = get_tokens
 )
