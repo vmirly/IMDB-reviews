@@ -19,9 +19,9 @@ testdata = []
 for i in xrange(0,len(test["review"])):
     testdata.append(" ".join(KaggleWord2VecUtility.review_to_wordlist(test["review"][i], False)))
 print 'vectorizing... ', 
-tfv = TfidfVectorizer(min_df=3,  max_features=1000, 
+tfv = TfidfVectorizer(min_df=5,  max_features=None, 
         strip_accents='unicode', analyzer='word',token_pattern=r'\w{1,}',
-        ngram_range=(1, 2), use_idf=1,smooth_idf=1,sublinear_tf=1,
+        ngram_range=(1, 3), use_idf=1,smooth_idf=1,sublinear_tf=1,
         stop_words = 'english')
 X_all = traindata + testdata
 lentrain = len(traindata)
@@ -44,5 +44,5 @@ result = model.predict_proba(X_test)[:,1]
 output = pd.DataFrame( data={"id":test["id"], "sentiment":result} )
 
 # Use pandas to write the comma-separated output file
-output.to_csv(os.path.join(os.path.dirname(__file__), 'data', 'Bag_of_Words_model.csv'), index=False, quoting=3)
-print "Wrote results to Bag_of_Words_model.csv"
+output.to_csv(os.path.join(os.path.dirname(__file__), 'logistic.tfidf.2.csv'), index=False, quoting=3)
+print "Wrote results to logistic.tfidf.2.csv"

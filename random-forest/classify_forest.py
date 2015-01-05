@@ -14,26 +14,26 @@ import numpy as np
 ### setting the parameter dictionary
 param_dict = {
     'use_idf': bool(sys.argv[1]),
-    'ngram_range': (int(sys.argv[5]), int(sys.argv[6])),
-    'max_features': int(sys.argv[7]),
-    'max_df': float(sys.argv[8]),
-    'min_df': int(sys.argv[9])
+    'min_df': int(sys.argv[2]),
+    'max_df': float(sys.argv[3]),
+    'ngram_range': (int(sys.argv[4]), int(sys.argv[5])),
+    'max_features': int(sys.argv[6]),
 }
 
 
 
 
 # Read the labeled training data
-train = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'labeledTrainData.tsv'), header=0, 
+train_data = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'labeledTrainData.tsv'), header=0, 
                     delimiter="\t", quoting=3)
 
 
-print(train.shape)
+print(train_data.shape)
 
 
-test = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'testData.tsv'), header=0, delimiter="\t", \
+test_data = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'testData.tsv'), header=0, delimiter="\t", \
                quoting=3 )
-y = train["sentiment"]
+y = train_data["sentiment"]
 
 tfv = TfidfVectorizer(
         min_df=param_dict['min_df'],
@@ -50,5 +50,6 @@ tfv = TfidfVectorizer(
 )
 
 
-X_all = traindata + testdata
-lentrain = len(traindata)
+X_all = train_data + test_data
+train_size = train_data['sentiment'].size
+print (train_size)
